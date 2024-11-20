@@ -1,5 +1,7 @@
+from rest_framework.decorators import action
 from rest_framework.viewsets import ModelViewSet
 from main.models import pontoTuristico
+from atracoes.models import Atracao
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import permission_classes
 from .serializers import pontoTuristicoSerializer
@@ -27,6 +29,19 @@ class pontoTuristicoViewSet(ModelViewSet):
             queryset = queryset.filter(descricao=descricao)
 
         return queryset
+    
+    @action(detail=True, methods=['post'], url_path='associar-atracoes')
+    def associar_atracoes(self, request, pk=None):
+        ponto_turistico = self.get_object()
+        atracoes_ids = request.data.get('atracoes_ids', [])
+        
+        if not atracoes_ids:
+            return Response({"detail": "Nenhuma atração foi fornecida."}, status=status.HTTP_400_BAD_REQUEST)
+        atracoes = Atracao.objects.filter(id__in=atracoes_ids)
+
+        ponto_turistico.atracoes.add(*atracoes)
+
+        return Response({"detail": "Atrações associadas com sucesso ao ponto turístico."}, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
         return super(pontoTuristicoViewSet, self).create(request, *args, **kwargs)
